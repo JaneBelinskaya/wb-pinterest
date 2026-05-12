@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WB → Pinterest | jane.belinskaya</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Georgia', serif; background: #f5f4f0; color: #1a1a1a; min-height: 100vh; padding: 40px 20px; }
+  .container { max-width: 620px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+  .subtitle { font-size: 0.85rem; color: #888; margin-bottom: 32px; }
+  .card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 16px; border: 1px solid #e8e5e0; }
+  label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin-bottom: 6px; margin-top: 14px; }
+  label:first-child { margin-top: 0; }
+  input, select, textarea { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; color: #1a1a1a; background: #fafaf8; outline: none; transition: border 0.2s; }
+  textarea { resize: vertical; min-height: 70px; }
+  input:focus, select:focus, textarea:focus { border-color: #1a1a1a; }
+  .row { display: flex; gap: 10px; align-items: flex-end; }
+  .row input { margin-bottom: 0; }
+  button { padding: 10px 22px; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-family: inherit; cursor: pointer; white-space: nowrap; transition: opacity 0.2s; }
+  button:hover { opacity: 0.85; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-secondary { background: transparent; color: #1a1a1a; border: 1px solid #ddd; }
+  .status { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #888; margin-top: 12px; min-height: 20px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #ddd; flex-shrink: 0; }
+  .dot.loading { background: #f0a500; animation: pulse 1s infinite; }
+  .dot.ok { background: #4caf50; }
+  .dot.err { background: #e53935; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #aaa; margin-bottom: 12px; }
+  .prompt-box { font-size: 13px; color: #555; line-height: 1.7; background: #f8f7f4; border-radius: 8px; padding: 12px 14px; border: 1px solid #eee; word-break: break-word; }
+  .gen-img { width: 100%; border-radius: 10px; border: 1px solid #eee; display: block; }
+  .img-placeholder { width: 100%; height: 300px; background: #f8f7f4; border-radius: 10px; border: 1px dashed #ddd; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; color: #bbb; font-size: 14px; }
+  .steps { display: flex; flex-direction: column; }
+  .step { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #aaa; padding: 8px 0; border-bottom: 1px solid #f0ede8; }
+  .step:last-child { border-bottom: none; }
+  .step-dot { width: 8px; height: 8px; border-radius: 50%; background: #ddd; flex-shrink: 0; }
+  .step.active { color: #1a1a1a; }
+  .step.active .step-dot { background: #f0a500; animation: pulse 1s infinite; }
+  .step.done { color: #1a1a1a; }
+  .step.done .step-dot { background: #4caf50; }
+  .hidden { display: none; }
+  .toggle-link { font-size: 12px; color: #888; cursor: pointer; text-decoration: underline; margin-bottom: 14px; display: inline-block; }
+  .pin-btn-wrap { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .hint { background: #f0f7ff; border: 1px solid #cce0ff; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #3a6ea8; line-height: 1.6; margin-bottom: 16px; }
+  .hint b { display: block; margin-bottom: 2px; }
+  .tag { display: inline-block; background: #f0ede8; border-radius: 6px; padding: 2px 8px; font-size: 11px; color: #888; margin-left: 6px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>jane.belinskaya</h1>
+  <p class="subtitle">WB → Промт → Изображение → Pinterest</p>
+
+  <!-- Подсказка -->
+  <div class="hint">
+    <b>📋 Как пользоваться:</b>
+    Открой товар на Wildberries → скопируй название и категорию → вставь ниже → нажми «Создать». Всё остальное автоматически!
+  </div>
+
+  <!-- Настройки API -->
+  <div class="card">
+    <span class="toggle-link" onclick="toggleSettings()">⚙️ Настройки API</span>
+    <div id="apiFields" class="hidden">
+      <label>OpenAI API ключ</label>
+      <input type="password" id="apiKey" placeholder="sk-proj-..."/>
+      <label>Pinterest Access Token <span class="tag">после получения</span></label>
+      <input type="password" id="pinterestToken" placeholder="Вставь когда придёт от Pinterest"/>
+      <label>Pinterest Board ID <span class="tag">ID доски</span></label>
+      <input type="text" id="boardId" placeholder="например: 123456789"/>
+      <label>Стиль изображений</label>
+      <select id="style">
+        <option value="lifestyle flat lay, pastel tones, soft shadows, minimal props, editorial Pinterest aesthetic">Lifestyle / пастель</option>
+        <option value="luxury product photography, dark moody background, dramatic studio lighting, high-end editorial">Люкс / тёмный фон</option>
+        <option value="clean bright studio photography, pure white background, natural soft light, crisp details">Студийное / белый фон</option>
+        <option value="cozy home interior scene, warm bokeh background, natural wood textures, soft lifestyle">Уютный интерьер</option>
+        <option value="trendy Gen Z aesthetic, vibrant saturated colors, creative flat lay, bold composition">Трендовый / яркий</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Данные о товаре -->
+  <div class="card">
+    <div class="section-title">Данные о товаре с WB</div>
+    <label>Название товара *</label>
+    <textarea id="productName" placeholder="например: Платье женское летнее с цветочным принтом миди"></textarea>
+    <label>Бренд</label>
+    <input type="text" id="productBrand" placeholder="например: Zara, H&M, или название магазина"/>
+    <label>Категория</label>
+    <input type="text" id="productCategory" placeholder="например: Платья, Сумки, Украшения, Косметика"/>
+    <div style="margin-top: 16px;">
+      <button onclick="run()" id="runBtn">✨ Создать изображение</button>
+    </div>
+    <div class="status">
+      <div class="dot" id="dot"></div>
+      <span id="statusText">Заполни поля и нажми «Создать»</span>
+    </div>
+  </div>
+
+  <!-- Результаты -->
+  <div id="resultArea" class="hidden">
+
+    <div class="card">
+      <div class="section-title">Промт для DALL-E</div>
+      <div class="prompt-box" id="promptBox">Генерируется...</div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Сгенерированное изображение</div>
+      <div id="imgContainer">
+        <div class="img-placeholder" id="imgPlaceholder">
+          <span>🎨</span>
+          <span>Изображение генерируется...</span>
+        </div>
+      </div>
+      <div class="pin-btn-wrap hidden" id="pinBtnWrap">
+        <button onclick="publishPin()" id="pinBtn">📌 Опубликовать в Pinterest</button>
+        <button class="btn-secondary" onclick="downloadImg()">⬇ Скачать</button>
+        <button class="btn-secondary" onclick="regenerate()">🔄 Переделать</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Прогресс</div>
+      <div class="steps">
+        <div class="step" id="s1"><div class="step-dot"></div> Формируем данные о товаре</div>
+        <div class="step" id="s2"><div class="step-dot"></div> Генерация промта (GPT-4o)</div>
+        <div class="step" id="s3"><div class="step-dot"></div> Генерация изображения (DALL-E 3)</div>
+        <div class="step" id="s4"><div class="step-dot"></div> Готово к публикации в Pinterest</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let generatedImageUrl = '';
+let lastPrompt = '';
+
+function toggleSettings() {
+  document.getElementById('apiFields').classList.toggle('hidden');
+}
+
+function setStatus(text, type) {
+  document.getElementById('statusText').textContent = text;
+  document.getElementById('dot').className = 'dot' + (type ? ' ' + type : '');
+}
+
+function setStep(id, state) {
+  document.getElementById(id).className = 'step ' + state;
+}
+
+async function generatePrompt(apiKey, name, brand, category, style) {
+  const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      max_tokens: 300,
+      messages: [
+        { role: 'system', content: 'You are a creative director for Pinterest visual content. Output ONLY the DALL-E 3 image generation prompt. Nothing else — no labels, no explanations.' },
+        { role: 'user', content: `Create a DALL-E 3 image prompt for this product:\nName: ${name}\nBrand: ${brand || 'unknown'}\nCategory: ${category || ''}\nVisual style: ${style}\n\nRules:\n- English only\n- Specific visual composition, lighting, props, colors, mood\n- No text overlay, no logos, no people, no faces\n- Perfect for Pinterest aesthetic\n- Max 180 words` }
+      ]
+    })
+  });
+  const d = await r.json();
+  if (d.error) throw new Error('GPT ошибка: ' + d.error.message);
+  return d.choices?.[0]?.message?.content?.trim() || '';
+}
+
+async function generateImage(apiKey, prompt) {
+  const r = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' })
+  });
+  const d = await r.json();
+  if (d.error) throw new Error('DALL-E ошибка: ' + d.error.message);
+  return d.data?.[0]?.url;
+}
+
+async function publishPin() {
+  const token = document.getElementById('pinterestToken').value.trim();
+  const boardId = document.getElementById('boardId').value.trim();
+  const name = document.getElementById('productName').value.trim();
+  if (!token) { document.getElementById('apiFields').classList.remove('hidden'); alert('Вставь Pinterest Access Token в настройках'); return; }
+  if (!boardId) { document.getElementById('apiFields').classList.remove('hidden'); alert('Укажи Pinterest Board ID в настройках'); return; }
+  if (!generatedImageUrl) { alert('Сначала сгенерируй изображение'); return; }
+
+  document.getElementById('pinBtn').disabled = true;
+  setStatus('Публикуем в Pinterest...', 'loading');
+  try {
+    const r = await fetch('https://api.pinterest.com/v5/pins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        board_id: boardId,
+        title: name || 'Pinterest Pin',
+        media_source: { source_type: 'image_url', url: generatedImageUrl }
+      })
+    });
+    const d = await r.json();
+    if (d.id) {
+      setStatus('✅ Пин успешно опубликован в Pinterest!', 'ok');
+    } else {
+      throw new Error(JSON.stringify(d));
+    }
+  } catch(e) {
+    setStatus('Ошибка Pinterest: ' + e.message, 'err');
+  }
+  document.getElementById('pinBtn').disabled = false;
+}
+
+function downloadImg() {
+  if (!generatedImageUrl) return;
+  const a = document.createElement('a');
+  a.href = generatedImageUrl;
+  a.download = 'pinterest-image.png';
+  a.target = '_blank';
+  a.click();
+}
+
+async function regenerate() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey || !lastPrompt) return;
+  document.getElementById('pinBtnWrap').classList.add('hidden');
+  document.getElementById('imgPlaceholder').style.display = 'flex';
+  const oldImg = document.getElementById('imgContainer').querySelector('img');
+  if (oldImg) oldImg.remove();
+  setStatus('Генерируем новое изображение...', 'loading');
+  try {
+    const imageUrl = await generateImage(apiKey, lastPrompt);
+    generatedImageUrl = imageUrl;
+    document.getElementById('imgPlaceholder').style.display = 'none';
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.className = 'gen-img';
+    document.getElementById('imgContainer').appendChild(img);
+    document.getElementById('pinBtnWrap').classList.remove('hidden');
+    setStatus('Готово! Можно публиковать в Pinterest', 'ok');
+  } catch(e) {
+    setStatus('Ошибка: ' + e.message, 'err');
+  }
+}
+
+async function run() {
+  const name = document.getElementById('productName').value.trim();
+  const brand = document.getElementById('productBrand').value.trim();
+  const category = document.getElementById('productCategory').value.trim();
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const style = document.getElementById('style').value;
+
+  if (!name) { setStatus('Введи название товара', 'err'); return; }
+  if (!apiKey) {
+    document.getElementById('apiFields').classList.remove('hidden');
+    setStatus('Введи OpenAI API ключ в настройках', 'err');
+    return;
+  }
+
+  document.getElementById('resultArea').classList.remove('hidden');
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('pinBtnWrap').classList.add('hidden');
+  document.getElementById('imgPlaceholder').style.display = 'flex';
+  const oldImg = document.getElementById('imgContainer').querySelector('img');
+  if (oldImg) oldImg.remove();
+  generatedImageUrl = '';
+  ['s1','s2','s3','s4'].forEach(s => setStep(s, ''));
+
+  try {
+    setStep('s1', 'active');
+    setStatus('Формируем данные о товаре...', 'loading');
+    await new Promise(r => setTimeout(r, 500));
+    setStep('s1', 'done');
+
+    setStep('s2', 'active');
+    setStatus('Генерируем промт через GPT-4o...', 'loading');
+    const prompt = await generatePrompt(apiKey, name, brand, category, style);
+    lastPrompt = prompt;
+    document.getElementById('promptBox').textContent = prompt;
+    setStep('s2', 'done');
+
+    setStep('s3', 'active');
+    setStatus('Генерируем изображение (DALL-E 3)... ~30 сек', 'loading');
+    const imageUrl = await generateImage(apiKey, prompt);
+    generatedImageUrl = imageUrl;
+
+    document.getElementById('imgPlaceholder').style.display = 'none';
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.className = 'gen-img';
+    img.alt = 'Изображение для Pinterest';
+    document.getElementById('imgContainer').appendChild(img);
+    setStep('s3', 'done');
+    setStep('s4', 'done');
+
+    document.getElementById('pinBtnWrap').classList.remove('hidden');
+    setStatus('Готово! Можно публиковать в Pinterest 🎉', 'ok');
+
+  } catch(e) {
+    setStatus('Ошибка: ' + e.message, 'err');
+  }
+  document.getElementById('runBtn').disabled = false;
+}
+</script>
+</body>
+</html>
